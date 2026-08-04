@@ -1,0 +1,4 @@
+fps=60
+base_speed=1
+base_angle=310
+debug=true
