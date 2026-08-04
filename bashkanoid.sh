@@ -1,13 +1,47 @@
 #!/bin/bash
-pi=3.1416
+PI=3.1416
 
-cols=$(tput cols)
-rows=$(tput lines)
 
 declare -a "frame"
 declare -a "changed_rows"
 declare -a "timers"
 declare -A "config"
+
+init_variables() {
+	cols=$(tput cols)
+	rows=$(tput lines)
+
+	player_position_y=$((rows - 2))
+	player_position_x=$((cols / 2))
+
+	frames=0
+
+	mapfile -t ball < skins/ball/default.txt
+	ball_y=5
+	ball_x=40
+	#ball_speed=1
+	#ball_angle=$1
+	#ball_angle="${ball_angle:=310}"
+
+	get_config
+	init_from_config
+
+	reset_frame
+}
+
+init_terminal() {
+	clear
+	printf "\033[?25l"
+	stty -echo
+}
+
+init_game() {
+	calc_velocities
+	calc_ball_position
+	draw_ball_in_frame
+	draw_player_in_frame
+	draw_frame
+}
 
 get_config() {
 	readarray -t lines < config.txt
@@ -28,27 +62,17 @@ reset_line() {
 	printf -v "frame[$line]" "%*s" "$cols" ""
 }
 
-for ((y=1; y<=rows; y++))
-do
-	reset_line "$y"
-done
-
-player_position_y=$((rows - 2))
-player_position_x=$((cols / 2))
-
-frames=0
-
-mapfile -t ball < skins/ball/default.txt
-ball_y=5
-ball_x=40
-ball_speed=1
-ball_angle=$1
-ball_angle="${ball_angle:=310}"
+reset_frame() {
+	for ((y=1; y<=rows; y++))
+	do
+		reset_line "$y"
+	done
+}
 
 
 calc_velocities() {
-	ball_velocity_x=$(echo "scale=3; c($ball_angle*$pi/180)" | bc -l )
-	ball_velocity_y=$(echo "scale=3; -s($ball_angle*$pi/180)" | bc -l )
+	ball_velocity_x=$(echo "scale=3; c($ball_angle*$PI/180)" | bc -l )
+	ball_velocity_y=$(echo "scale=3; -s($ball_angle*$PI/180)" | bc -l )
 }
 
 move_ball() {
@@ -128,89 +152,83 @@ stop() {
 	exit
 }
 
-trap stop SIGINT
+main() {
+	trap stop SIGINT
 
-printf "\033[?25l"
-clear
+	init_terminal
+	init_variables
+	init_game
 
-get_config
-init_from_config
-
-calc_velocities
-calc_ball_position
-draw_ball_in_frame
-draw_player_in_frame
-draw_frame
-
-stty -echo
-
-now=$(date +%s%3N)
-last_game_update="$now"
-last_display="$now"
-
-while true ; do
-	start_time=$(date +%s%3N)  # start time in milliseconds
 	now=$(date +%s%3N)
-	read -t0.001 -n1 -s -r input
-	[ -n "${input}" ] && active_input="$input"
+	last_game_update="$now"
+	last_display="$now"
 
-	if (( now-last_game_update >= 10)); then
+	while true ; do
+		start_time=$(date +%s%3N)  # start time in milliseconds
+		now=$(date +%s%3N)
+		read -t0.001 -n1 -s -r input
+		[ -n "${input}" ] && active_input="$input"
 
-		case "$active_input" in
-			"q")
-				if (( player_position_x > 1 ))
-				then
-					((player_position_x--))
-					draw_player_in_frame
-				fi
-				;;
-			"d")
-				if (( player_position_x < cols-12 ))
-				then
-					((player_position_x++))
-					draw_player_in_frame
-				fi
-				;;
-		esac
+		if (( now-last_game_update >= 10)); then
+
+			case "$active_input" in
+				"q")
+					if (( player_position_x > 1 ))
+					then
+						((player_position_x--))
+						draw_player_in_frame
+					fi
+					;;
+				"d")
+					if (( player_position_x < cols-12 ))
+					then
+						((player_position_x++))
+						draw_player_in_frame
+					fi
+					;;
+			esac
+			
+
+			if (( ball_row >= player_position_y-4 || ball_row <= 1 ))
+			then
+				bounce_y
+			fi
+			if (( ball_column >= cols-7 || ball_column <= 2 ))
+			then
+				bounce_x
+			fi
+
+			move_ball
+			calc_ball_position
+
+			erase_ball_in_frame
+			draw_ball_in_frame
+			active_input=
+			last_game_update="$now"
+		fi
 		
-
-		if (( ball_row >= player_position_y-4 || ball_row <= 1 ))
-		then
-			bounce_y
-		fi
-		if (( ball_column >= cols-7 || ball_column <= 2 ))
-		then
-			bounce_x
+		if (( now-last_display >= frame_refresh_delay )); then
+			draw_frame
+			last_display="$now"
 		fi
 
-		move_ball
-		calc_ball_position
 
-		erase_ball_in_frame
-		draw_ball_in_frame
-		active_input=
-		last_game_update="$now"
-	fi
-	
-	if (( now-last_display >= frame_refresh_delay )); then
-		draw_frame
-		last_display="$now"
-	fi
+		#printf "%s\n" "${!changed_rows[@]}" > uqss2.txt # DEBUG: rows to rewrite
+		#printf "%s\n" "${frame[@]}" > uqss.txt # DEBUG: the whole frame
 
+		((frames++))
+		if [[ ${config[debug]} = true ]]; then
+			printf "\033[1;1H%d" $frames
+			printf "\033[2;1Hvx:%s" "$ball_velocity_x"
+			printf "\033[3;1Hvy:%s" "$ball_velocity_y"
+			printf "\033[4;1Hangle:%s" "$ball_angle"
+			printf "\033[5;1Hrow:%s col:%s" "$ball_row" "$ball_column"
+		fi
 
-	#printf "%s\n" "${!changed_rows[@]}" > uqss2.txt # DEBUG: rows to rewrite
-	#printf "%s\n" "${frame[@]}" > uqss.txt # DEBUG: the whole frame
+		end_time=$(date +%s%3N)  # # end time in milliseconds
+		duration_ms=$((end_time - start_time))  # duration in milliseconds
+		timers+=("$duration_ms")
+	done
+}
 
-    ((frames++))
-	if [[ ${config[debug]} = true ]]; then
-		printf "\033[1;1H%d" $frames
-		printf "\033[2;1Hvx:%s" "$ball_velocity_x"
-		printf "\033[3;1Hvy:%s" "$ball_velocity_y"
-		printf "\033[4;1Hangle:%s" "$ball_angle"
-		printf "\033[5;1Hrow:%s col:%s" "$ball_row" "$ball_column"
-	fi
-
-	end_time=$(date +%s%3N)  # # end time in milliseconds
-	duration_ms=$((end_time - start_time))  # duration in milliseconds
-	timers+=("$duration_ms")
-done
+main "$@"
