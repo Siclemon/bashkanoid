@@ -1,4 +1,8 @@
+skin=default
 fps=60
-base_speed=1
+player_speed=2
+base_speed=0.7
 base_angle=310
+base_y=5
+base_x=40
 debug=true

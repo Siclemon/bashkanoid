@@ -1,6 +1,9 @@
 #!/bin/bash
 PI=3.1416
-
+BALL_HEIGHT=4
+BALL_WIDTH=8
+PLAYER_WIDTH=12
+GAME_REFRESH_RATE=10
 
 declare -a "frame"
 declare -a "changed_rows"
@@ -10,22 +13,17 @@ declare -A "config"
 init_variables() {
 	cols=$(tput cols)
 	rows=$(tput lines)
-
 	player_position_y=$((rows - 2))
-	player_position_x=$((cols / 2))
+	player_position_x=$(( (cols - PLAYER_WIDTH) / 2))
+	player_min_x=1
+	player_max_x=$((cols-PLAYER_WIDTH))
 
 	frames=0
-
-	mapfile -t ball < skins/ball/default.txt
-	ball_y=5
-	ball_x=40
-	#ball_speed=1
-	#ball_angle=$1
-	#ball_angle="${ball_angle:=310}"
 
 	get_config
 	init_from_config
 
+	mapfile -t ball < skins/ball/"$skin".txt
 	reset_frame
 }
 
@@ -44,6 +42,9 @@ init_game() {
 }
 
 get_config() {
+	if [ ! -f config.txt ]; then
+		create_config
+	fi
 	readarray -t lines < config.txt
 
 	for line in "${lines[@]}"; do
@@ -51,10 +52,28 @@ get_config() {
 	done
 }
 
+create_config() {
+	local config_array=(
+		"skin=default"
+		"fps=60"
+		"player_speed=2"
+		"base_speed=1"
+		"base_angle=310"
+		"base_y=5"
+		"base_x=40"
+		"debug=true"
+	)
+	printf "%s\n" "${config_array[@]}" > config.txt
+}
+
 init_from_config() {
+	player_speed=${config[player_speed]}
 	ball_angle=${config[base_angle]}
 	ball_speed=${config[base_speed]}
+	ball_y=${config[base_y]}
+	ball_x=${config[base_x]}
 	frame_refresh_delay=$(( 1000/config[fps] ))
+	skin=${config[skin]}
 }
 
 reset_line() {
@@ -63,12 +82,29 @@ reset_line() {
 }
 
 reset_frame() {
-	for ((y=1; y<=rows; y++))
-	do
+	for ((y=1; y<=rows; y++)); do
 		reset_line "$y"
 	done
 }
 
+handle_input() {
+	case "$1" in
+		"q")
+			if (( player_position_x > player_min_x )); then
+				local new_pos=$((player_position_x-player_speed))
+				player_position_x=$((new_pos>player_min_x-1 ? new_pos : player_min_x))
+				draw_player_in_frame
+			fi
+			;;
+		"d")
+			if (( player_position_x < cols-PLAYER_WIDTH )); then
+				local new_pos=$((player_position_x+player_speed))
+				player_position_x=$((new_pos<player_max_x ? new_pos : player_max_x))
+				draw_player_in_frame
+			fi
+			;;
+	esac
+}
 
 calc_velocities() {
 	ball_velocity_x=$(echo "scale=3; c($ball_angle*$PI/180)" | bc -l )
@@ -87,6 +123,15 @@ calc_ball_position() {
 	ball_column=$(echo " scale=0; (($ball_x)+0.5)/1" | bc -l)
 }
 
+check_collisions() {
+	if (( ball_row >= player_position_y-4 || ball_row <= 1 )); then
+		bounce_y
+	fi
+	if (( ball_column >= cols-BALL_WIDTH-1 || ball_column <= 2 )); then
+		bounce_x
+	fi
+}
+
 bounce_x() {
 	ball_angle=$(( (540-ball_angle) % 360 ))
 	calc_velocities
@@ -103,13 +148,13 @@ draw_player_in_frame() {
 }
 
 draw_ball_in_frame() {
-	for (( i=0; i<4; i++ )) ; do
+	for (( i=0; i<BALL_HEIGHT; i++ )) ; do
 		draw "${ball[$i]}" "$((ball_row+i))" "$ball_column"
 	done
 }
 
 erase_ball_in_frame() {
-	for (( i=0; i<4; i++ )) ; do
+	for (( i=0; i<BALL_HEIGHT; i++ )) ; do
 		draw "        " "$((old_ball_row+i))" "$old_ball_column"
 	done
 }
@@ -133,6 +178,15 @@ draw_frame() {
 			unset "changed_rows[i]"
 		fi
 	done
+}
+
+print_debug() {
+	printf "\033[1;1H%d  " $frames
+	printf "\033[2;1Hvx:%s  " "$ball_velocity_x"
+	printf "\033[3;1Hvy:%s  " "$ball_velocity_y"
+	printf "\033[4;1Hangle:%s  " "$ball_angle"
+	printf "\033[5;1Hrow:%s col:%s  " "$ball_row" "$ball_column"
+	printf "\033[6;1Hframe duration:%s  " "$1"
 }
 
 stop() {
@@ -159,45 +213,29 @@ main() {
 	init_variables
 	init_game
 
-	now=$(date +%s%3N)
-	last_game_update="$now"
-	last_display="$now"
+	last_game_update=$(date +%s%3N)
+	last_display=$(date +%s%3N)
 
 	while true ; do
-		start_time=$(date +%s%3N)  # start time in milliseconds
+		local now
+		local start_time
+		local end_time
+		local duration
+		local input
+		local active_input
+
+		((frames++))
 		now=$(date +%s%3N)
+		start_time="$now"
+
 		read -t0.001 -n1 -s -r input
 		[ -n "${input}" ] && active_input="$input"
 
-		if (( now-last_game_update >= 10)); then
+		if (( now-last_game_update >= GAME_REFRESH_RATE)); then
 
-			case "$active_input" in
-				"q")
-					if (( player_position_x > 1 ))
-					then
-						((player_position_x--))
-						draw_player_in_frame
-					fi
-					;;
-				"d")
-					if (( player_position_x < cols-12 ))
-					then
-						((player_position_x++))
-						draw_player_in_frame
-					fi
-					;;
-			esac
+			handle_input "$active_input"
 			
-
-			if (( ball_row >= player_position_y-4 || ball_row <= 1 ))
-			then
-				bounce_y
-			fi
-			if (( ball_column >= cols-7 || ball_column <= 2 ))
-			then
-				bounce_x
-			fi
-
+			check_collisions
 			move_ball
 			calc_ball_position
 
@@ -212,22 +250,16 @@ main() {
 			last_display="$now"
 		fi
 
-
-		#printf "%s\n" "${!changed_rows[@]}" > uqss2.txt # DEBUG: rows to rewrite
+		#printf "%s\n" "${!changed_rows[@]}" > uqss2.txt # DEBUG: rows' indices to rewrite
 		#printf "%s\n" "${frame[@]}" > uqss.txt # DEBUG: the whole frame
 
-		((frames++))
-		if [[ ${config[debug]} = true ]]; then
-			printf "\033[1;1H%d" $frames
-			printf "\033[2;1Hvx:%s" "$ball_velocity_x"
-			printf "\033[3;1Hvy:%s" "$ball_velocity_y"
-			printf "\033[4;1Hangle:%s" "$ball_angle"
-			printf "\033[5;1Hrow:%s col:%s" "$ball_row" "$ball_column"
-		fi
+		end_time=$(date +%s%3N)
+		duration=$((end_time - start_time))
+		timers+=("$duration")
 
-		end_time=$(date +%s%3N)  # # end time in milliseconds
-		duration_ms=$((end_time - start_time))  # duration in milliseconds
-		timers+=("$duration_ms")
+		if [[ ${config[debug]} = true ]]; then
+			print_debug $duration
+		fi
 	done
 }
 
