@@ -5,4 +5,4 @@ base_speed=0.7
 base_angle=310
 base_y=5
 base_x=40
-debug=true
+debug=tue

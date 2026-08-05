@@ -1,9 +1,9 @@
 #!/bin/bash
-PI=3.1416
-BALL_HEIGHT=4
-BALL_WIDTH=8
-PLAYER_WIDTH=12
-GAME_REFRESH_RATE=10
+readonly PI=3.1416
+readonly BALL_HEIGHT=4
+readonly BALL_WIDTH=8
+readonly PLAYER_WIDTH=12
+readonly GAME_REFRESH_RATE=10
 
 declare -a "frame"
 declare -a "changed_rows"
@@ -124,7 +124,9 @@ calc_ball_position() {
 }
 
 check_collisions() {
-	if (( ball_row >= player_position_y-4 || ball_row <= 1 )); then
+	if (( ball_row == player_position_y-BALL_HEIGHT && (ball_column>player_position_x-BALL_WIDTH && ball_column<player_position_x+PLAYER_WIDTH) )); then
+		bounce_player
+	elif (( ball_row >= player_position_y-BALL_HEIGHT )) && [[ ${config[debug]} = true ]] || (( ball_row <= 1 )) ; then
 		bounce_y
 	fi
 	if (( ball_column >= cols-BALL_WIDTH-1 || ball_column <= 2 )); then
@@ -139,6 +141,12 @@ bounce_x() {
 
 bounce_y() {
 	ball_angle=$(( 360-ball_angle ))
+	calc_velocities
+}
+
+bounce_player() {
+	local offset=$(( (ball_column + BALL_WIDTH / 2) - (player_position_x + PLAYER_WIDTH / 2) ))
+	ball_angle=$(( 90 - offset * 7 ))
 	calc_velocities
 }
 
