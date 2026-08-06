@@ -57,11 +57,12 @@ create_config() {
 		"skin=default"
 		"fps=60"
 		"player_speed=2"
-		"base_speed=1"
+		"base_speed=0.7"
 		"base_angle=310"
 		"base_y=5"
 		"base_x=40"
-		"debug=true"
+		"debug=false"
+		"cheat=false"
 	)
 	printf "%s\n" "${config_array[@]}" > config.txt
 }
@@ -126,7 +127,7 @@ calc_ball_position() {
 check_collisions() {
 	if (( ball_row == player_position_y-BALL_HEIGHT && (ball_column>player_position_x-BALL_WIDTH && ball_column<player_position_x+PLAYER_WIDTH) )); then
 		bounce_player
-	elif (( ball_row >= player_position_y-BALL_HEIGHT )) && [[ ${config[debug]} = true ]] || (( ball_row <= 1 )) ; then
+	elif (( ball_row >= player_position_y-BALL_HEIGHT )) && [[ ${config[cheat]} = true ]] || (( ball_row <= 1 )) ; then
 		bounce_y
 	fi
 	if (( ball_column >= cols-BALL_WIDTH-1 || ball_column <= 2 )); then
@@ -188,6 +189,13 @@ draw_frame() {
 	done
 }
 
+game_over() {
+	clear
+	printf "\033[?25h"
+	compute_times
+	echo "t nul"
+}
+
 print_debug() {
 	printf "\033[1;1H%d  " $frames
 	printf "\033[2;1Hvx:%s  " "$ball_velocity_x"
@@ -197,11 +205,8 @@ print_debug() {
 	printf "\033[6;1Hframe duration:%s  " "$1"
 }
 
-stop() {
-	printf "\033[%s;1H" "$((rows+1))"
-
-	printf "%s\n" "${timers[@]}" > arklogs/timer.txt
-
+compute_times() {
+	local average_time
 	local sum=0
 	for time in "${timers[@]}" ; do
 		((sum+=time))
@@ -209,7 +214,12 @@ stop() {
 	average_time=$(echo "scale=3; $sum/$frames" | bc -l)
 	echo -e "average loop time: ${average_time}ms"
 	echo "$(date +'%d/%m/%Y %R') - $average_time" >> arklogs/average_times.txt
+	printf "%s\n" "${timers[@]}" > arklogs/timer.txt
+}
 
+stop() {
+	printf "\033[%s;1H" "$((rows+1))"
+	compute_times
 	printf "\033[?25h"
 	exit
 }
@@ -221,10 +231,14 @@ main() {
 	init_variables
 	init_game
 
+	local lost=0
+	local last_game_update
+	local last_display
+
 	last_game_update=$(date +%s%3N)
 	last_display=$(date +%s%3N)
 
-	while true ; do
+	while (( lost == 0)) ; do
 		local now
 		local start_time
 		local end_time
@@ -247,13 +261,17 @@ main() {
 			move_ball
 			calc_ball_position
 
+			if (( ball_row>=player_position_y-BALL_HEIGHT+1 )); then
+				lost=1
+			fi
+
 			erase_ball_in_frame
 			draw_ball_in_frame
 			active_input=
 			last_game_update="$now"
 		fi
 		
-		if (( now-last_display >= frame_refresh_delay )); then
+		if (( now-last_display >= frame_refresh_delay || lost == 1)); then
 			draw_frame
 			last_display="$now"
 		fi
@@ -269,6 +287,8 @@ main() {
 			print_debug $duration
 		fi
 	done
+
+	game_over
 }
 
 main "$@"
