@@ -4,6 +4,8 @@ readonly BALL_HEIGHT=4
 readonly BALL_WIDTH=8
 readonly PLAYER_WIDTH=12
 readonly GAME_REFRESH_RATE=10
+readonly BRICK_HEIGHT=2
+readonly BRICK_WIDTH=12
 
 declare -a "frame"
 declare -a "changed_rows"
@@ -24,6 +26,7 @@ init_variables() {
 	init_from_config
 
 	mapfile -t ball < skins/ball/"$skin".txt
+	mapfile -t brick < skins/brick/"$brick_skin".txt
 	reset_frame
 }
 
@@ -75,6 +78,7 @@ init_from_config() {
 	ball_x=${config[base_x]}
 	frame_refresh_delay=$(( 1000/config[fps] ))
 	skin=${config[skin]}
+	brick_skin="default"
 }
 
 reset_line() {
@@ -85,6 +89,39 @@ reset_line() {
 reset_frame() {
 	for ((y=1; y<=rows; y++)); do
 		reset_line "$y"
+	done
+}
+
+spawn_bricks() {
+	create_bricks_rows
+	gen_bricks
+	draw_bricks_in_frame
+}
+
+create_bricks_rows() {
+	brick_rows=$(( (rows - 17) / 2 ))
+
+	for (( i=1; i<=brick_rows; i++)); do
+		declare -a brick_row_${i}
+	done
+}
+
+gen_bricks() {
+	local -n row="brick_row_4"
+	row+=(50)
+	row+=(100)
+	local -n row="brick_row_10"
+	row+=(75)
+}
+
+draw_bricks_in_frame() {
+	for (( i=1; i<=brick_rows; i++)); do
+		local -n row="brick_row_${i}"
+		for b in "${row[@]}"; do
+			for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
+				draw "${brick[$j]}" "$((i+j))" "$b"
+			done
+		done
 	done
 }
 
@@ -230,6 +267,8 @@ main() {
 	init_terminal
 	init_variables
 	init_game
+
+	spawn_bricks
 
 	local lost=0
 	local last_game_update
