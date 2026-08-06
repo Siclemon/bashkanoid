@@ -4,5 +4,5 @@ Arkanoid in bash
 ---
 
 To-do:
-- add Game over
+- make Game over better
 - add bricks (oh no)
