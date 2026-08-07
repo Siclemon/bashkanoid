@@ -4,7 +4,7 @@ readonly BALL_HEIGHT=4
 readonly BALL_WIDTH=8
 readonly PLAYER_WIDTH=12
 readonly GAME_REFRESH_RATE=10
-readonly BRICK_HEIGHT=2
+readonly BRICK_HEIGHT=3
 readonly BRICK_WIDTH=12
 
 declare -a "frame"
@@ -78,7 +78,7 @@ init_from_config() {
 	ball_x=${config[base_x]}
 	frame_refresh_delay=$(( 1000/config[fps] ))
 	skin=${config[skin]}
-	brick_skin="default"
+	brick_skin="cc"
 }
 
 reset_line() {
@@ -101,7 +101,7 @@ spawn_bricks() {
 create_bricks_rows() {
 	brick_rows=$(( (rows - 17) / 2 ))
 
-	for (( i=1; i<=brick_rows; i++)); do
+	for (( i=1; i<=brick_rows; i+=BRICK_HEIGHT)); do
 		declare -a brick_row_${i}
 	done
 }
@@ -110,19 +110,65 @@ gen_bricks() {
 	local -n row="brick_row_4"
 	row+=(50)
 	row+=(100)
-	local -n row="brick_row_10"
+	local -n row="brick_row_16"
 	row+=(75)
+
+	local -n row="brick_row_7"
+	local bricks
+	bricks=$(shuf -i 1-16 -n 7)
+	for br in ${bricks[@]}; do
+		echo "${bricks[@]}" > br.txt
+		row+=( $((br*12)) )
+	done
 }
 
-draw_bricks_in_frame() {
-	for (( i=1; i<=brick_rows; i++)); do
-		local -n row="brick_row_${i}"
-		for b in "${row[@]}"; do
-			for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
-				draw "${brick[$j]}" "$((i+j))" "$b"
-			done
+draw_all_bricks_in_frame() {
+	for (( i=1; i<=brick_rows; i+=BRICK_HEIGHT)); do
+		draw_brick_row_in_frame "$i"
+	done
+}
+
+draw_brick_row_in_frame() {
+	local -n row="brick_row_${1}"
+	for b in "${row[@]}"; do
+		for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
+			draw "${brick[$j]}" "$((i+j))" "$b"
 		done
 	done
+}
+
+check_collisions_bricks() {
+	local ball_max_row
+	local ball_max_column
+	local first_brick_row_to_check
+	local second_brick_row_to_check
+	ball_max_row=$((ball_row + BALL_HEIGHT - 1))
+	ball_max_column=$((ball_column + BALL_WIDTH - 1))
+	first_brick_row_to_check=$((ball_row - (ball_row - 1) % 3))
+	second_brick_row_to_check=$((first_brick_row_to_check + 3))
+
+	if (( ball_row % 3 == 2 )); then
+		check_bricks_from_row "$((ball_row - 3))"
+	fi
+	if (( ball_row % 3 == 0 )); then
+		check_bricks_from_row "$((ball_row + 4))"
+	fi
+
+}
+
+check_bricks_from_row() {
+	local collision
+	local -n row="brick_row_${1}"
+	local -a new_array
+	for b in ${row[@]}; do
+		if (( ball_column>b-BALL_WIDTH && ball_column<b+BRICK_WIDTH )); then
+			collision=true
+		else
+			new_array+=(b)
+		fi
+	done
+	row=("${new_array[@]}")
+	echo "$collision"
 }
 
 handle_input() {
