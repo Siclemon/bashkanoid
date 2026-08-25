@@ -95,7 +95,7 @@ reset_frame() {
 spawn_bricks() {
 	create_bricks_rows
 	gen_bricks
-	draw_bricks_in_frame
+	draw_all_bricks_in_frame
 }
 
 create_bricks_rows() {
@@ -110,15 +110,16 @@ gen_bricks() {
 	local -n row="brick_row_4"
 	row+=(50)
 	row+=(100)
-	local -n row="brick_row_16"
+	local -n row="brick_row_10"
 	row+=(75)
 
 	local -n row="brick_row_7"
 	local bricks
-	bricks=$(shuf -i 1-16 -n 7)
+	local bricks_slots=$((cols / 12 - 1))
+	bricks=$(shuf -i 0-$bricks_slots -n $((bricks_slots*10/10)))
 	for br in ${bricks[@]}; do
 		echo "${bricks[@]}" > br.txt
-		row+=( $((br*12)) )
+		row+=( $((1+br*12)) )
 	done
 }
 
@@ -129,10 +130,11 @@ draw_all_bricks_in_frame() {
 }
 
 draw_brick_row_in_frame() {
+	local line=$1
 	local -n row="brick_row_${1}"
 	for b in "${row[@]}"; do
 		for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
-			draw "${brick[$j]}" "$((i+j))" "$b"
+			draw "${brick[$j]}" "$((line+j))" "$b"
 		done
 	done
 }
@@ -147,28 +149,46 @@ check_collisions_bricks() {
 	first_brick_row_to_check=$((ball_row - (ball_row - 1) % 3))
 	second_brick_row_to_check=$((first_brick_row_to_check + 3))
 
-	if (( ball_row % 3 == 2 )); then
-		check_bricks_from_row "$((ball_row - 3))"
+	if (( (ball_row) % 3 == 1 && ball_angle <= 180 && ball_angle >= 0)); then
+		# local collided
+		# collided=$(check_bricks_from_row "$((ball_row - 3))")
+		# echo $collided >> caca.txt
+		# if [[ $collided = true ]]; then
+		# 	bounce_y
+		# 	draw_brick_row_in_frame "$((ball_row - 3))"
+		# fi
+		local top_row=$((ball_row - 3))
+		check_bricks_from_row "$top_row"
 	fi
-	if (( ball_row % 3 == 0 )); then
-		check_bricks_from_row "$((ball_row + 4))"
-	fi
+	# if (( ball_row % 3 == 0 )); then
+	# 	local collided
+	# 	collided="$(check_bricks_from_row "$((ball_row + 4))")"
+	# fi
 
 }
 
 check_bricks_from_row() {
+	local line="$1"
 	local collision
-	local -n row="brick_row_${1}"
+	local -n row="brick_row_$line"
 	local -a new_array
-	for b in ${row[@]}; do
-		if (( ball_column>b-BALL_WIDTH && ball_column<b+BRICK_WIDTH )); then
+	collision=false
+	for bri in ${row[@]}; do
+		if (( ball_column>bri-BALL_WIDTH && ball_column<bri+BRICK_WIDTH )); then
 			collision=true
 		else
-			new_array+=(b)
+			new_array+=($bri)
 		fi
 	done
+	echo "${new_array[@]}" >> newarray.txt
 	row=("${new_array[@]}")
-	echo "$collision"
+	echo $collision >> pipi.txt
+	if [[ $collision = "true" ]]; then
+		echo "oui" >> col.txt
+		bounce_y
+		draw_brick_row_in_frame "$line"
+	fi
+	#echo $collision
 }
 
 handle_input() {
@@ -216,6 +236,7 @@ check_collisions() {
 	if (( ball_column >= cols-BALL_WIDTH-1 || ball_column <= 2 )); then
 		bounce_x
 	fi
+	check_collisions_bricks
 }
 
 bounce_x() {
