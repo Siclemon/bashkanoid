@@ -1,7 +1,7 @@
 #!/bin/bash
 readonly PI=3.1416
-readonly BALL_HEIGHT=4
-readonly BALL_WIDTH=8
+readonly BALL_HEIGHT=2
+readonly BALL_WIDTH=4
 readonly PLAYER_WIDTH=12
 readonly GAME_REFRESH_RATE=10
 readonly BRICK_HEIGHT=3
@@ -78,7 +78,7 @@ init_from_config() {
 	ball_x=${config[base_x]}
 	frame_refresh_delay=$(( 1000/config[fps] ))
 	skin=${config[skin]}
-	brick_skin="cc"
+	brick_skin="thin"
 }
 
 reset_line() {
@@ -99,7 +99,7 @@ spawn_bricks() {
 }
 
 create_bricks_rows() {
-	brick_rows=$(( (rows - 17) / 2 ))
+	brick_rows=$(( (rows - 10) / 2 ))
 
 	for (( i=1; i<=brick_rows; i+=BRICK_HEIGHT)); do
 		declare -a brick_row_${i}
@@ -107,16 +107,20 @@ create_bricks_rows() {
 }
 
 gen_bricks() {
-	local -n row="brick_row_4"
-	row+=(50)
-	row+=(100)
-	local -n row="brick_row_10"
-	row+=(75)
+	gen_bricks_in_row 1 3
+	gen_bricks_in_row 4 4
+	gen_bricks_in_row 7 6
+	gen_bricks_in_row 10 7
+	gen_bricks_in_row 13 8
+	gen_bricks_in_row 16 8
+}
 
-	local -n row="brick_row_10"
+gen_bricks_in_row() {
+	local -n row="brick_row_${1}"
+	local amount=$2
 	local bricks
 	local bricks_slots=$((cols / 12 - 1))
-	bricks=$(shuf -i 0-$bricks_slots -n $((bricks_slots*10/10)))
+	bricks=$(shuf -i 0-$bricks_slots -n $((bricks_slots*amount/10)))
 	for br in ${bricks[@]}; do
 		echo "${bricks[@]}" > br.txt
 		row+=( $((1+br*12)) )
@@ -143,12 +147,8 @@ draw_brick_row_in_frame() {
 }
 
 check_collisions_bricks() {
-	local ball_max_row
-	local ball_max_column
 	local first_brick_row_to_check
 	local second_brick_row_to_check
-	ball_max_row=$((ball_row + BALL_HEIGHT - 1))
-	ball_max_column=$((ball_column + BALL_WIDTH - 1))
 	first_brick_row_to_check=$((ball_row - (ball_row - 1) % 3))
 	second_brick_row_to_check=$((first_brick_row_to_check + 3))
 
