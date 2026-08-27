@@ -1,5 +1,6 @@
-skin=small
-fps=60
+ball_skin=small
+brick_skin=default
+fps=100
 player_speed=2
 base_speed=0.7
 base_angle=310

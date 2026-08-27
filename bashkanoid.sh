@@ -26,7 +26,9 @@ init_variables() {
 	init_from_config
 
 	mapfile -t ball < skins/ball/"$skin".txt
-	mapfile -t brick < skins/brick/"$brick_skin".txt
+	mapfile -t brick_1 < skins/brick/"$brick_skin"/1.txt
+	mapfile -t brick_2 < skins/brick/"$brick_skin"/2.txt
+	mapfile -t brick_3 < skins/brick/"$brick_skin"/3.txt
 	reset_frame
 }
 
@@ -58,6 +60,7 @@ get_config() {
 create_config() {
 	local config_array=(
 		"skin=default"
+		"brick_skin"
 		"fps=60"
 		"player_speed=2"
 		"base_speed=0.7"
@@ -77,8 +80,8 @@ init_from_config() {
 	ball_y=${config[base_y]}
 	ball_x=${config[base_x]}
 	frame_refresh_delay=$(( 1000/config[fps] ))
-	skin=${config[skin]}
-	brick_skin="thin"
+	skin=${config[ball_skin]}
+	brick_skin=${config[brick_skin]}
 }
 
 reset_line() {
@@ -99,7 +102,7 @@ spawn_bricks() {
 }
 
 create_bricks_rows() {
-	brick_rows=$(( (rows - 10) / 2 ))
+	brick_rows=$(( rows * 2 / 5 ))
 
 	for (( i=1; i<=brick_rows; i+=BRICK_HEIGHT)); do
 		declare -a brick_row_${i}
@@ -107,24 +110,31 @@ create_bricks_rows() {
 }
 
 gen_bricks() {
-	gen_bricks_in_row 1 3
+	gen_bricks_in_row 1 10
 	gen_bricks_in_row 4 4
 	gen_bricks_in_row 7 6
 	gen_bricks_in_row 10 7
 	gen_bricks_in_row 13 8
-	gen_bricks_in_row 16 8
+	gen_bricks_in_row 16 10
 }
 
 gen_bricks_in_row() {
 	local -n row="brick_row_${1}"
 	local amount=$2
 	local -a bricks
-	local bricks_slots=$((cols / 12 - 1))
-	bricks=( $(shuf -i 0-$bricks_slots -n $((bricks_slots*amount/10))) )
+	local bricks_slots=$((cols / 12))
+	bricks=( $(shuf -i 0-$((bricks_slots-1)) -n $((bricks_slots*amount/10))) )
 	for br in "${bricks[@]}"; do
-		echo "${bricks[@]}" > br.txt
-		row+=( $((1+br*12)) )
+		local rng=$RANDOM
+		local health=$(( 1 + (( (1 + rng % 100) < 90)) + (( (1 + rng % 100) < 40 )) ))
+		local type=0
+		printf -v column "%03d" "$((1+br*12))"
+		local new_brick=$health$type$column
+		unset column
+		row+=( "$new_brick" )
+		echo "$new_brick" >> br.txt
 	done
+	echo >> br.txt
 }
 
 draw_all_bricks_in_frame() {
@@ -140,9 +150,14 @@ draw_brick_row_in_frame() {
 		reset_line $((line+j))
 	done
 	for b in "${row[@]}"; do
-		for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
-			draw "${brick[$j]}" "$((line+j))" "$b"
-		done
+		local health=$((b/10000))
+		if ((health>0)); then
+			local column=$((b%1000))
+			local -n current_brick_skin="brick_${health}"
+			for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
+				draw "${current_brick_skin[$j]}" "$((line+j))" "$column"
+			done
+		fi
 	done
 }
 
@@ -152,7 +167,7 @@ check_collisions_bricks() {
 }
 
 check_bricks_top_bottom_rows() {
-	if (( (ball_row) % BRICK_HEIGHT == 1 && ball_angle > 0 && ball_angle < 180)); then
+	if (( ball_row % BRICK_HEIGHT == 1 && ball_angle > 0 && ball_angle < 180)); then
 		local top_row=$((ball_row - BRICK_HEIGHT))
 		check_bricks_y_collision $top_row
 	elif (( (ball_row + BALL_HEIGHT) % BRICK_HEIGHT == 1 && ball_angle > 180 && ball_angle < 360)); then
@@ -165,7 +180,7 @@ check_bricks_current_rows() {
 	local first_brick_row_to_check
 	local x_collision
 	local rows_to_check
-	rows_to_check=$(( 1 + (BALL_HEIGHT-2) % BRICK_HEIGHT + $(( (BALL_HEIGHT-2) % BRICK_HEIGHT + (ball_row-1) % BRICK_HEIGHT >= BRICK_HEIGHT )) ))
+	rows_to_check=$(( 1 + (BALL_HEIGHT-2) / BRICK_HEIGHT + $(( (BALL_HEIGHT-2) % BRICK_HEIGHT + (ball_row-1) % BRICK_HEIGHT >= BRICK_HEIGHT )) ))
 	first_brick_row_to_check=$((ball_row - (ball_row - 1) % BRICK_HEIGHT))
 
 	for ((i=0; i<rows_to_check; i++)); do
@@ -196,16 +211,18 @@ check_bricks_from_row() {
 	local line="$2"
 	local collision
 	local -n row="brick_row_$line"
-	local -a new_array
 	collision=false
-	for bri in "${row[@]}"; do
-		if brick_collision_check "$mode" "$bri"; then
-			collision=true
-		else
-			new_array+=("$bri")
+	for brick_index in "${!row[@]}"; do
+		local current_brick=${row[brick_index]}
+		local health=$((current_brick/10000))
+		if (( health > 0 )); then
+			local column=$((current_brick%1000))
+			if brick_collision_check "$mode" "$column"; then
+				collision=true
+				row[brick_index]=$((current_brick-10000))
+			fi
 		fi
 	done
-	row=("${new_array[@]}")
 
 	$collision
 }
@@ -216,9 +233,9 @@ brick_collision_check() {
 	local ball_left=$ball_column
 	local ball_right=$((ball_left+BALL_WIDTH))
 	case $1 in
-		x) (( ball_right >= brick_left && ball_right < brick_left + BALL_WIDTH/2 || ball_left <= brick_right && ball_left > brick_right - BALL_WIDTH/2 )) ;;
+		x) (( ball_right >= brick_left && ball_left <= brick_right )) ;;
 		y) (( ball_right > brick_left && ball_left < brick_right )) ;;
-		inside) (( ball_left >= brick_left + BALL_WIDTH/2 && ball_right <= brick_right - BALL_WIDTH/2 )) ;;
+		inside) (( ball_left >= brick_left - BALL_WIDTH/2 && ball_right <= brick_right + BALL_WIDTH/2 )) ;;
 	esac
 }
 
@@ -267,7 +284,7 @@ check_collisions() {
 	if (( ball_column >= cols-BALL_WIDTH-1 || ball_column <= 2 )); then
 		bounce_x
 	fi
-	if (( ball_row <= brick_rows )); then
+	if (( ball_row <= brick_rows + BRICK_HEIGHT + 1 )); then
 		check_collisions_bricks
 	fi
 }
@@ -396,9 +413,9 @@ main() {
 
 			handle_input "$active_input"
 			
-			check_collisions
 			move_ball
 			calc_ball_position
+			check_collisions
 
 			if (( ball_row>=player_position_y-BALL_HEIGHT+1 )); then
 				lost=1
