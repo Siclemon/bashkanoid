@@ -118,10 +118,10 @@ gen_bricks() {
 gen_bricks_in_row() {
 	local -n row="brick_row_${1}"
 	local amount=$2
-	local bricks
+	local -a bricks
 	local bricks_slots=$((cols / 12 - 1))
-	bricks=$(shuf -i 0-$bricks_slots -n $((bricks_slots*amount/10)))
-	for br in ${bricks[@]}; do
+	bricks=( $(shuf -i 0-$bricks_slots -n $((bricks_slots*amount/10))) )
+	for br in "${bricks[@]}"; do
 		echo "${bricks[@]}" > br.txt
 		row+=( $((1+br*12)) )
 	done
@@ -148,20 +148,39 @@ draw_brick_row_in_frame() {
 
 check_collisions_bricks() {
 	local first_brick_row_to_check
-	local second_brick_row_to_check
-	first_brick_row_to_check=$((ball_row - (ball_row - 1) % 3))
-	second_brick_row_to_check=$((first_brick_row_to_check + 3))
+	local x_collision
+	local rows_to_check
+	rows_to_check=$(( 1 + (BALL_HEIGHT-2) % BRICK_HEIGHT + $(( (BALL_HEIGHT-2) % BRICK_HEIGHT + (ball_row-1) % BRICK_HEIGHT >= BRICK_HEIGHT )) ))
+	first_brick_row_to_check=$((ball_row - (ball_row - 1) % BRICK_HEIGHT))
 
 	if (( (ball_row) % 3 == 1 && ball_angle >= 0 && ball_angle <= 180)); then
 		local top_row=$((ball_row - 3))
-		check_bricks_from_row "y" "$top_row"
-	elif (( ball_row % 3 == 0 && ball_angle >= 180 && ball_angle <= 360)); then
-		local bottom_row=$((ball_row + 4))
-		check_bricks_from_row "y" "$bottom_row"
+		check_bricks_y_collision $top_row
+	elif (( ball_row % 3 == 2 && ball_angle >= 180 && ball_angle <= 360)); then
+		local bottom_row=$((ball_row + 2))
+		check_bricks_y_collision $bottom_row
 	fi
-	check_bricks_from_row "x" "$first_brick_row_to_check"
-	check_bricks_from_row "x" "$second_brick_row_to_check"
-	#problem: if the ball collides with 2 bricks' sides, the bounces will cancel eachother
+	for ((i=0; i<rows_to_check; i++)); do
+		local current_row=$((first_brick_row_to_check + i * BRICK_HEIGHT))
+		if check_bricks_from_row "inside" "$current_row" ; then
+			bounce_y
+			draw_brick_row_in_frame $current_row
+		elif check_bricks_from_row "x" "$current_row" ; then
+			x_collision=true
+			draw_brick_row_in_frame $current_row
+		fi
+	done
+	if [[ $x_collision = true ]]; then
+		bounce_x
+	fi
+}
+
+check_bricks_y_collision() {
+	local row_to_check=$1
+	if check_bricks_from_row "y" "$row_to_check" ; then
+		bounce_y
+		draw_brick_row_in_frame "$row_to_check"
+	fi
 }
 
 check_bricks_from_row() {
@@ -171,7 +190,7 @@ check_bricks_from_row() {
 	local -n row="brick_row_$line"
 	local -a new_array
 	collision=false
-	for bri in ${row[@]}; do
+	for bri in "${row[@]}"; do
 		if brick_collision_check "$mode" "$bri"; then
 			collision=true
 		else
@@ -179,16 +198,19 @@ check_bricks_from_row() {
 		fi
 	done
 	row=("${new_array[@]}")
-	if [[ $collision = "true" ]]; then
-		bounce_"$mode"
-		draw_brick_row_in_frame "$line"
-	fi
+
+	$collision
 }
 
 brick_collision_check() {
+	local brick_left=$2
+	local brick_right=$((brick_left+BRICK_WIDTH))
+	local ball_left=$ball_column
+	local ball_right=$((ball_left+BALL_WIDTH))
 	case $1 in
-		x) (( ball_column+BALL_WIDTH == $2 || ball_column == $2+BRICK_WIDTH )) ;;
-		y) (( ball_column > $2-BALL_WIDTH && ball_column < $2+BRICK_WIDTH )) ;;
+		x) (( ball_right >= brick_left && ball_right < brick_left + BALL_WIDTH/2 || ball_left <= brick_right && ball_left > brick_right - BALL_WIDTH/2 )) ;;
+		y) (( ball_right > brick_left && ball_left < brick_right )) ;;
+		inside) (( ball_left >= brick_left + BALL_WIDTH/2 && ball_right <= brick_right - BALL_WIDTH/2 )) ;;
 	esac
 }
 
@@ -271,7 +293,7 @@ draw_ball_in_frame() {
 
 erase_ball_in_frame() {
 	for (( i=0; i<BALL_HEIGHT; i++ )) ; do
-		draw "        " "$((old_ball_row+i))" "$old_ball_column"
+		draw "    " "$((old_ball_row+i))" "$old_ball_column"
 	done
 }
 

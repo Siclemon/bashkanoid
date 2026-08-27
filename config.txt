@@ -1,4 +1,4 @@
-skin=default
+skin=small
 fps=60
 player_speed=2
 base_speed=0.7
