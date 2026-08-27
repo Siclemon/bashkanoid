@@ -147,19 +147,27 @@ draw_brick_row_in_frame() {
 }
 
 check_collisions_bricks() {
+	check_bricks_top_bottom_rows
+	check_bricks_current_rows
+}
+
+check_bricks_top_bottom_rows() {
+	if (( (ball_row) % BRICK_HEIGHT == 1 && ball_angle > 0 && ball_angle < 180)); then
+		local top_row=$((ball_row - BRICK_HEIGHT))
+		check_bricks_y_collision $top_row
+	elif (( (ball_row + BALL_HEIGHT) % BRICK_HEIGHT == 1 && ball_angle > 180 && ball_angle < 360)); then
+		local bottom_row=$((ball_row + BALL_HEIGHT))
+		check_bricks_y_collision $bottom_row
+	fi
+}
+
+check_bricks_current_rows() {
 	local first_brick_row_to_check
 	local x_collision
 	local rows_to_check
 	rows_to_check=$(( 1 + (BALL_HEIGHT-2) % BRICK_HEIGHT + $(( (BALL_HEIGHT-2) % BRICK_HEIGHT + (ball_row-1) % BRICK_HEIGHT >= BRICK_HEIGHT )) ))
 	first_brick_row_to_check=$((ball_row - (ball_row - 1) % BRICK_HEIGHT))
 
-	if (( (ball_row) % 3 == 1 && ball_angle >= 0 && ball_angle <= 180)); then
-		local top_row=$((ball_row - 3))
-		check_bricks_y_collision $top_row
-	elif (( ball_row % 3 == 2 && ball_angle >= 180 && ball_angle <= 360)); then
-		local bottom_row=$((ball_row + 2))
-		check_bricks_y_collision $bottom_row
-	fi
 	for ((i=0; i<rows_to_check; i++)); do
 		local current_row=$((first_brick_row_to_check + i * BRICK_HEIGHT))
 		if check_bricks_from_row "inside" "$current_row" ; then
