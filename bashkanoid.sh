@@ -132,9 +132,9 @@ gen_bricks_in_row() {
 		local new_brick=$health$type$column
 		unset column
 		row+=( "$new_brick" )
-		echo "$new_brick" >> br.txt
+		echo "$new_brick" >> logs/br.txt
 	done
-	echo >> br.txt
+	echo >> logs/br.txt
 }
 
 draw_all_bricks_in_frame() {
