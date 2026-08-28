@@ -1,9 +1,10 @@
-skin=default
-fps=60
+ball_skin=small
+brick_skin=default
+fps=100
 player_speed=2
 base_speed=0.7
 base_angle=310
 base_y=5
 base_x=40
-debug=true
-cheat=false
+debug=false
+cheat=true
