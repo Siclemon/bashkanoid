@@ -1,4 +1,5 @@
 #!/bin/bash
+declare -A "config"
 
 get_config() {
 	if [ ! -f config.txt ]; then
@@ -16,7 +17,7 @@ create_config() {
 		"skin=default"
 		"brick_skin"
 		"fps=60"
-		"player_speed=2"
+		"paddle_speed=2"
 		"base_speed=0.7"
 		"base_angle=310"
 		"base_y=5"
@@ -28,7 +29,7 @@ create_config() {
 }
 
 init_from_config() {
-	player_speed=${config[player_speed]}
+	paddle_speed=${config[paddle_speed]}
 	ball_angle=${config[base_angle]}
 	ball_speed=${config[base_speed]}
 	ball_y=${config[base_y]}
@@ -36,4 +37,8 @@ init_from_config() {
 	frame_refresh_delay=$(( 1000/config[fps] ))
 	skin=${config[ball_skin]}
 	brick_skin=${config[brick_skin]}
+}
+
+is_godmode() {
+	[[ ${config[cheat]} = true ]]
 }

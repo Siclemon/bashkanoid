@@ -1,12 +1,14 @@
 #!/bin/bash
+declare -a "frame"
+declare -a "changed_rows"
 
 reset_line() {
 	local line="$1"
-	printf -v "frame[$line]" "%*s" "$cols" ""
+	printf -v "frame[$line]" "%*s" "$screen_width" ""
 }
 
 reset_frame() {
-	for ((y=1; y<=rows; y++)); do
+	for ((y=1; y<=screen_height; y++)); do
 		reset_line "$y"
 	done
 }
