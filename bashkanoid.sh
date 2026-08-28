@@ -12,26 +12,6 @@ declare -a "changed_rows"
 declare -a "timers"
 declare -A "config"
 
-init_variables() {
-	cols=$(tput cols)
-	rows=$(tput lines)
-	player_position_y=$((rows - 2))
-	player_position_x=$(( (cols - PLAYER_WIDTH) / 2))
-	player_min_x=1
-	player_max_x=$((cols-PLAYER_WIDTH))
-
-	loops=0
-
-	get_config
-	init_from_config
-
-	mapfile -t ball < skins/ball/"$skin".txt
-	mapfile -t brick_1 < skins/brick/"$brick_skin"/1.txt
-	mapfile -t brick_2 < skins/brick/"$brick_skin"/2.txt
-	mapfile -t brick_3 < skins/brick/"$brick_skin"/3.txt
-	reset_frame
-}
-
 init_terminal() {
 	printf "\033c"
 	printf "\033[?25l"
@@ -44,55 +24,6 @@ init_game() {
 	draw_ball_in_frame
 	draw_player_in_frame
 	draw_frame
-}
-
-get_config() {
-	if [ ! -f config.txt ]; then
-		create_config
-	fi
-	readarray -t lines < config.txt
-
-	for line in "${lines[@]}"; do
-		config[${line%%=*}]=${line#*=}
-	done
-}
-
-create_config() {
-	local config_array=(
-		"skin=default"
-		"brick_skin"
-		"fps=60"
-		"player_speed=2"
-		"base_speed=0.7"
-		"base_angle=310"
-		"base_y=5"
-		"base_x=40"
-		"debug=false"
-		"cheat=false"
-	)
-	printf "%s\n" "${config_array[@]}" > config.txt
-}
-
-init_from_config() {
-	player_speed=${config[player_speed]}
-	ball_angle=${config[base_angle]}
-	ball_speed=${config[base_speed]}
-	ball_y=${config[base_y]}
-	ball_x=${config[base_x]}
-	frame_refresh_delay=$(( 1000/config[fps] ))
-	skin=${config[ball_skin]}
-	brick_skin=${config[brick_skin]}
-}
-
-reset_line() {
-	local line="$1"
-	printf -v "frame[$line]" "%*s" "$cols" ""
-}
-
-reset_frame() {
-	for ((y=1; y<=rows; y++)); do
-		reset_line "$y"
-	done
 }
 
 spawn_bricks() {
@@ -322,27 +253,6 @@ erase_ball_in_frame() {
 	done
 }
 
-draw() {
-	local new_element="$1"
-	local new_element_row="$2"
-	local new_element_col="$3"
-
-	local string_to_change=${frame[$new_element_row]}
-	local new_string=${string_to_change:0:$((new_element_col-1))}$new_element${string_to_change:$((new_element_col-1+${#new_element}))}
-	frame[new_element_row]="$new_string"
-
-	changed_rows[new_element_row]=true
-}
-
-draw_frame() {
-	for (( i=1 ; i<rows ; i++)) ; do
-		if [[ ${changed_rows[i]} = "true" ]] ; then
-			printf "\033[%s;1H%s" "$i" "${frame[$i]}"
-			unset "changed_rows[i]"
-		fi
-	done
-}
-
 game_over() {
 	printf "\033c"
 	printf "\033[?25h"
@@ -367,8 +277,8 @@ compute_times() {
 	done
 	average_time=$(echo "scale=3; $sum/$loops" | bc -l)
 	echo -e "average loop time: ${average_time}ms"
-	echo "$(date +'%d/%m/%Y %R') - $average_time" >> arklogs/average_times.txt
-	printf "%s\n" "${timers[@]}" > arklogs/timer.txt
+	echo "$(date +'%d/%m/%Y %R') - $average_time" >> logs/average_times.txt
+	printf "%s\n" "${timers[@]}" > logs/timer.txt
 }
 
 stop() {
