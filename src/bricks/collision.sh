@@ -6,10 +6,10 @@ handle_bricks_collision() {
 }
 
 check_bricks_top_bottom_rows() {
-	if (( ball_row % BRICK_HEIGHT == 1 && ball_angle > 0 && ball_angle < 180)); then
+	if is_going_up && is_brick_row_above ; then
 		local top_row=$((ball_row - BRICK_HEIGHT))
 		check_bricks_y_collision $top_row
-	elif (( (ball_row + BALL_HEIGHT) % BRICK_HEIGHT == 1 && ball_angle > 180 && ball_angle < 360)); then
+	elif is_going_down && is_brick_row_below ; then
 		local bottom_row=$((ball_row + BALL_HEIGHT))
 		check_bricks_y_collision $bottom_row
 	fi
@@ -19,22 +19,22 @@ check_bricks_current_rows() {
 	local first_brick_row_to_check
 	local x_collision
 	local rows_to_check
+	local row_index
 	rows_to_check=$(( 1 + (BALL_HEIGHT-2) / BRICK_HEIGHT + $(( (BALL_HEIGHT-2) % BRICK_HEIGHT + (ball_row-1) % BRICK_HEIGHT >= BRICK_HEIGHT )) ))
 	first_brick_row_to_check=$((ball_row - (ball_row - 1) % BRICK_HEIGHT))
 
-	for ((i=0; i<rows_to_check; i++)); do
-		local current_row=$((first_brick_row_to_check + i * BRICK_HEIGHT))
+	for ((row_index=0; row_index<rows_to_check; row_index++)); do
+		local current_row=$((first_brick_row_to_check + row_index * BRICK_HEIGHT))
 		if check_bricks_from_row "inside" "$current_row" ; then
 			bounce_y
-			draw_brick_row_in_frame $current_row
+			draw_brick_row_in_frame "$current_row"
 		elif check_bricks_from_row "x" "$current_row" ; then
 			x_collision=true
-			draw_brick_row_in_frame $current_row
+			draw_brick_row_in_frame "$current_row"
 		fi
 	done
-	if [[ $x_collision = true ]]; then
-		bounce_x
-	fi
+
+	[[ $x_collision = true ]] && bounce_x
 }
 
 check_bricks_y_collision() {
@@ -52,13 +52,11 @@ check_bricks_from_row() {
 	local -n row="brick_row_$line"
 	collision=false
 	for brick_index in "${!row[@]}"; do
-		local current_brick=${row[brick_index]}
-		local health=$((current_brick/10000))
-		if (( health > 0 )); then
-			local column=$((current_brick%1000))
-			if brick_collision_check "$mode" "$column"; then
+		if is_alive "$line" "$brick_index" ; then
+			local column=$(get_column "$line" "$brick_index")
+			if check_collision_brick "$mode" "$column"; then
 				collision=true
-				row[brick_index]=$((current_brick-10000))
+				damage_brick "$line" "$brick_index" 1
 			fi
 		fi
 	done
@@ -66,7 +64,7 @@ check_bricks_from_row() {
 	$collision
 }
 
-brick_collision_check() {
+check_collision_brick() {
 	local brick_left=$2
 	local brick_right=$((brick_left+BRICK_WIDTH))
 	local ball_left=$ball_column

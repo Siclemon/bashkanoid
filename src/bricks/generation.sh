@@ -3,14 +3,13 @@
 spawn_bricks() {
 	create_bricks_rows
 	gen_bricks
-	draw_all_bricks_in_frame
 }
 
 create_bricks_rows() {
 	brick_rows=$(( screen_height * 2 / 5 ))
 
 	for (( i=1; i<=brick_rows; i+=BRICK_HEIGHT)); do
-		declare -a brick_row_${i}
+		declare -ga brick_row_${i}
 	done
 }
 

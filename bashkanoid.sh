@@ -4,4 +4,4 @@ source ./src/game/load.sh
 
 load_code
 initialize
-start
+game

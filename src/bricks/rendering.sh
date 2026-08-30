@@ -1,8 +1,9 @@
 #!/bin/bash
 
 draw_all_bricks_in_frame() {
-	for (( i=1; i<=brick_rows; i+=BRICK_HEIGHT)); do
-		draw_brick_row_in_frame "$i"
+	local brick_row
+	for (( brick_row=1; brick_row<=brick_rows; brick_row+=BRICK_HEIGHT)); do
+		draw_brick_row_in_frame "$brick_row"
 	done
 }
 

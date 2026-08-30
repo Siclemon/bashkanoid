@@ -1,10 +1,18 @@
-ball_skin=small
-brick_skin=default
+# GAME
 fps=100
-paddle_speed=2
+debug=false
+godmode=true
+
+# BALL
+ball_skin=small
 base_speed=0.7
 base_angle=310
 base_y=5
 base_x=40
-debug=false
-cheat=true
+
+# BRICKS
+brick_skin=default
+
+# PADDLE
+paddle_skin=default
+paddle_speed=2

@@ -32,3 +32,19 @@ bounce_paddle() {
     ball_angle=$(( 90 - offset * 7 ))
     calc_velocities
 }
+
+is_going_up() {
+    ((ball_angle > 0 && ball_angle < 180))
+}
+
+is_going_down() {
+    ((ball_angle > 180 && ball_angle < 360))
+}
+
+is_brick_row_above() {
+    (( ball_row % BRICK_HEIGHT == 1 ))
+}
+
+is_brick_row_below() {
+    (( (ball_row + BALL_HEIGHT) % BRICK_HEIGHT == 1 ))
+}
