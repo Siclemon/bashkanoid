@@ -1,15 +1,13 @@
 #!/bin/bash
-readonly PI=3.1416
-readonly BALL_HEIGHT=2
-readonly BALL_WIDTH=4
-readonly PADDLE_WIDTH=12
-readonly GAME_REFRESH_RATE=10
-readonly BRICK_HEIGHT=3
-readonly BRICK_WIDTH=12
 
 initialize() {
 	initialize_variables
-	initialize_game
+	initialize_from_config
+	initialize_skins
+	initialize_game_state
+	initialize_frame
+	initialize_terminal
+	draw_frame
 }
 
 initialize_variables() {
@@ -21,22 +19,31 @@ initialize_variables() {
 	paddle_max_column=$((screen_width-PADDLE_WIDTH))
 
 	loops=0
+}
 
-	get_config
-	initialize_from_config
-
-	mapfile -t ball < skins/ball/"$skin".txt
+initialize_skins() {
+	mapfile -t ball < skins/ball/"$ball_skin".txt
 	mapfile -t brick_1 < skins/brick/"$brick_skin"/1.txt
 	mapfile -t brick_2 < skins/brick/"$brick_skin"/2.txt
 	mapfile -t brick_3 < skins/brick/"$brick_skin"/3.txt
-	reset_frame
+	mapfile -t paddle < skins/paddle/"$paddle_skin".txt
 }
 
-initialize_game() {
+initialize_game_state() {
 	calc_velocities
 	calc_ball_position
-	draw_ball_in_frame
-	draw_paddle
 	spawn_bricks
-	draw_frame
+}
+
+initialize_frame() {
+	reset_frame
+	draw_paddle
+	draw_ball_in_frame
+	draw_all_bricks_in_frame
+}
+
+initialize_terminal() {
+	clear_terminal
+	hide_cursor
+	hide_input
 }

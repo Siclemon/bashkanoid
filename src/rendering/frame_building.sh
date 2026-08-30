@@ -1,6 +1,6 @@
 #!/bin/bash
-declare -a "frame"
-declare -a "changed_rows"
+declare -ga "frame"
+declare -ga "changed_rows"
 
 reset_line() {
 	local line="$1"

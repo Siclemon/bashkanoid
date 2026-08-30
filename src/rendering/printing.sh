@@ -9,8 +9,22 @@ draw_frame() {
 	done
 }
 
-init_terminal() {
+clear_terminal() {
 	printf "\033c"
+}
+
+hide_cursor() {
 	printf "\033[?25l"
+}
+
+show_cursor() {
+	printf "\033[?25h"
+}
+
+hide_input() {
 	stty -echo
+}
+
+show_input() {
+	stty echo
 }
