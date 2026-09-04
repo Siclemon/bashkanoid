@@ -1,5 +1,6 @@
 #!/bin/bash
 
+trap 'printf "DEBUG: %s:%s: %s\n" "${BASH_SOURCE[0]}" "$LINENO" "$BASH_COMMAND" >&2' DEBUG
 handle_bricks_collision() {
 	check_bricks_top_bottom_rows
 	check_bricks_current_rows
@@ -56,7 +57,7 @@ check_bricks_from_row() {
 			local column=$(get_column "$line" "$brick_index")
 			if check_collision_brick "$mode" "$column"; then
 				collision=true
-				damage_brick "$line" "$brick_index" 1
+				damage_brick "$line" "$brick_index" 3
 			fi
 		fi
 	done

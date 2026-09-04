@@ -1,5 +1,5 @@
 # GAME
-fps=100
+fps=60
 debug=false
 godmode=true
 

@@ -61,5 +61,5 @@ create_config() {
 }
 
 is_godmode() {
-    [[ ${config[cheat]} = true ]]
+    [[ ${config[godmode]} = true ]]
 }

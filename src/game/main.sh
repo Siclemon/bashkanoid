@@ -1,10 +1,14 @@
 #!/bin/bash
 
-now_ms() {
+now_mss() {
     local t=$(date +%s%N)
     t=${t:7:6}
     t=$((10#$t))
     echo $t
+}
+
+now_ms() {
+    date +%s%3N
 }
 
 game() {

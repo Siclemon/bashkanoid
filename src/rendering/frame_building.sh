@@ -14,13 +14,14 @@ reset_frame() {
 }
 
 draw() {
-	local new_element="$1"
-	local new_element_row="$2"
-	local new_element_col="$3"
+	:
+	# local new_element="$1"
+	# local new_element_row="$2"
+	# local new_element_col="$3"
 
-	local string_to_change=${frame[$new_element_row]}
-	local new_string=${string_to_change:0:$((new_element_col-1))}$new_element${string_to_change:$((new_element_col-1+${#new_element}))}
-	frame[new_element_row]="$new_string"
+	# local string_to_change=${frame[$new_element_row]}
+	# local new_string=${string_to_change:0:$((new_element_col-1))}$new_element${string_to_change:$((new_element_col-1+${#new_element}))}
+	# frame[new_element_row]="$new_string"
 
-	changed_rows[new_element_row]=true
+	# changed_rows[new_element_row]=true
 }

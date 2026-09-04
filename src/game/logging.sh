@@ -14,7 +14,7 @@ compute_times() {
 }
 
 print_debug() {
-	printf "\033[1;1H%d  " $loops
+	printf "\033[1;1H%d  " "$loops"
 	printf "\033[2;1Hvx:%s  " "$ball_velocity_x"
 	printf "\033[3;1Hvy:%s  " "$ball_velocity_y"
 	printf "\033[4;1Hangle:%s  " "$ball_angle"

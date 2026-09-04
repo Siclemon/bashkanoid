@@ -13,11 +13,10 @@ draw_brick_row_in_frame() {
 	for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
 		reset_line $((line+j))
 	done
-	for b in "${row[@]}"; do
-		local health=$((b/10000))
-		if ((health>0)); then
-			local column=$((b%1000))
-			local -n current_brick_skin="brick_${health}"
+	for b in "${!row[@]}"; do
+		if is_alive "$line" "$b"; then
+			local column=$(get_column "$line" "$b")
+			local -n current_brick_skin="brick_$(get_health "$line" "$b")"
 			for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
 				draw "${current_brick_skin[$j]}" "$((line+j))" "$column"
 			done
