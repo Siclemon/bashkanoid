@@ -1,5 +1,5 @@
 Boom: explodes and hits ajacents bricks
-Enlarge: enlarges the player paddle
+Enlarge: enlarges the paddle paddle
 Slow: slows down the ball
 Laser: shoots laser from the paddle (2s intervals over 10s)
 (Gravity: falls, can hit brick(s) below)
