@@ -8,6 +8,7 @@ spawn_bricks() {
 create_bricks_rows() {
 	brick_rows=$(( screen_height * 2 / 5 ))
 
+	local i
 	for (( i=1; i<=brick_rows; i+=BRICK_HEIGHT)); do
 		declare -ga brick_row_${i}
 	done
@@ -28,6 +29,7 @@ gen_bricks_in_row() {
 	local -a bricks
 	local bricks_slots=$((screen_width / 12))
 	bricks=( $(shuf -i 0-$((bricks_slots-1)) -n $((bricks_slots*amount/10))) )
+	local br
 	for br in "${bricks[@]}"; do
 		local rng=$RANDOM
 		local health=$(( 1 + (( (1 + rng % 100) < 90)) + (( (1 + rng % 100) < 40 )) ))

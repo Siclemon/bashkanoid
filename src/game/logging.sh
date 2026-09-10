@@ -4,6 +4,7 @@ declare -a "timers"
 compute_times() {
 	local average_time
 	local sum=0
+	local time
 	for time in "${timers[@]}" ; do
 		((sum+=time))
 	done

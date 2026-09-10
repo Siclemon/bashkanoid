@@ -15,19 +15,14 @@ game() {
     trap stop SIGINT
     
     local lost=0
-    local last_game_update
-    local last_display
+    local last_game_update last_display
     
     last_game_update=$(now_ms)
     last_display=$(now_ms)
     
     while (( lost == 0)) ; do
-        local now
-        local start_time
-        local end_time
-        local duration
-        local input
-        local active_input
+        local now start_time end_time duration
+        local input active_input
         
         ((loops++))
         now=$(now_ms)
@@ -63,9 +58,8 @@ game() {
         duration=$((end_time - start_time))
         timers+=("$duration")
         
-        if [[ ${config[debug]} = true ]]; then
-            print_debug $duration
-        fi
+        is_debug && print_debug $duration
+        
     done
     
     game_over

@@ -63,3 +63,7 @@ create_config() {
 is_godmode() {
     [[ ${config[godmode]} = true ]]
 }
+
+is_debug() {
+    [[ ${config[debug]} = true ]]
+}

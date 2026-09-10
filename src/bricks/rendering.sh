@@ -10,15 +10,19 @@ draw_all_bricks_in_frame() {
 draw_brick_row_in_frame() {
 	local line=$1
 	local -n row="brick_row_${1}"
+	local j
 	for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
 		reset_line $((line+j))
 	done
+	local b
 	for b in "${!row[@]}"; do
-		if is_alive "$line" "$b"; then
-			local column=$(get_column "$line" "$b")
-			local -n current_brick_skin="brick_$(get_health "$line" "$b")"
+		local brick_health brick_column
+		get_brick_data "$line" "$b"
+		if ((brick_health)); then
+			local -n current_brick_skin="brick_${brick_health}"
+			local j
 			for (( j=0; j<BRICK_HEIGHT; j++ )) ; do
-				draw "${current_brick_skin[$j]}" "$((line+j))" "$column"
+				draw "${current_brick_skin[$j]}" "$((line+j))" "$brick_column"
 			done
 		fi
 	done
