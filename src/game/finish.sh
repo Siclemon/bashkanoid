@@ -5,6 +5,8 @@ stop() {
 	compute_times
 	restore_terminal
 	is_debug && set | grep '^[a-z].*='
+	initialize_game_area
+	draw_game_area_frame
 	exit
 }
 

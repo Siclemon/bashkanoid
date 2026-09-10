@@ -3,11 +3,13 @@
 initialize() {
 	initialize_variables
 	initialize_from_config
+	initialize_game_area
 	initialize_skins
 	initialize_game_state
 	initialize_frame
 	initialize_terminal
 	draw_frame
+	draw_game_area_frame
 }
 
 initialize_variables() {
