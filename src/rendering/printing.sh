@@ -2,9 +2,9 @@
 
 draw_frame() {
 	local i
-	for (( i=1 ; i<screen_height ; i++)) ; do
+	for (( i=0 ; i<game_area_height ; i++)) ; do
 		if [[ ${changed_rows[i]} = "true" ]] ; then
-			printf "\033[%s;1H%s" "$i" "${frame[$i]}"
+			printf "\033[%s;%sH%s" "$((i+game_area_first_row))" "$game_area_first_col" "${frame[$i]}"
 			unset "changed_rows[i]"
 		fi
 	done

@@ -6,7 +6,7 @@ check_collisions() {
     elif is_ball_on_top || (is_ball_on_bottom && is_godmode) ; then
         bounce_y
     fi
-    if is_ball_on_screen_side; then
+    if is_ball_on_game_area_side; then
         bounce_x
     fi
     if is_ball_in_bricks_rows; then
@@ -22,8 +22,8 @@ is_ball_on_bottom() {
     (( ball_row >= paddle_row-BALL_HEIGHT ))
 }
 
-is_ball_on_screen_side() {
-    (( ball_column >= screen_width-BALL_WIDTH-1 || ball_column <= 2 ))
+is_ball_on_game_area_side() {
+    (( ball_column >= game_area_width-BALL_WIDTH || ball_column <= 1 ))
 }
 
 is_ball_in_bricks_rows() {

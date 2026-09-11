@@ -6,7 +6,7 @@ spawn_bricks() {
 }
 
 create_bricks_rows() {
-	brick_rows=$(( screen_height * 2 / 5 ))
+	brick_rows=$(( game_area_height * 2 / 5 ))
 
 	local i
 	for (( i=1; i<=brick_rows; i+=BRICK_HEIGHT)); do
@@ -27,7 +27,7 @@ gen_bricks_in_row() {
 	local -n row="brick_row_${1}"
 	local amount=$2
 	local -a bricks
-	local bricks_slots=$((screen_width / 12))
+	local bricks_slots=$((game_area_width / 12))
 	bricks=( $(shuf -i 0-$((bricks_slots-1)) -n $((bricks_slots*amount/10))) )
 	local br
 	for br in "${bricks[@]}"; do

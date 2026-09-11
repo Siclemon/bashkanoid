@@ -4,11 +4,11 @@ declare -ga "changed_rows"
 
 reset_line() {
 	local line="$1"
-	printf -v "frame[$line]" "%*s" "$screen_width" ""
+	printf -v "frame[$line]" "%*s" "$game_area_width" ""
 }
 
 reset_frame() {
-	for ((y=1; y<=screen_height; y++)); do
+	for ((y=1; y<=game_area_height; y++)); do
 		reset_line "$y"
 	done
 }
